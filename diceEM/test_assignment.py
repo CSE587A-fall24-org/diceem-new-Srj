@@ -99,6 +99,7 @@ class TestDiceEM(unittest.TestCase):
         actual_1 = e_step(experiment_data, bag_of_dice)
 
         self.assertEqual(actual_1.shape, (2, 6))
+
         
     @weight(6)
     def test_2(self):

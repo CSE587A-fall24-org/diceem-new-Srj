@@ -61,9 +61,9 @@ def diceEM(experiment_data: List[NDArray[np.int_]],  # pylint: disable=C0103
 
         # YOUR CODE HERE. SET REQUIRED VARIABLES BY CALLING e-step AND m-step.
         # E-step: compute the expected counts given current parameters        
-  
+        expected_counts = e_step(experiment_data, bag_of_dice)
         # M-step: update the parameters given the expected counts
-      
+        updated_bag_of_dice = m_step(expected_counts)
         prev_bag_of_dice: BagOfDice = bag_of_dice
         bag_of_dice = updated_bag_of_dice
 
@@ -108,7 +108,10 @@ def e_step(experiment_data: List[NDArray[np.int_]],
     # counts for each type over all the draws.  
 
     # PUT YOUR CODE HERE, FOLLOWING THE DIRECTIONS ABOVE
-
+    for i in range(len(experiment_data)):
+        posterior_prob = dice_posterior(experiment_data[i],(1,1), bag_of_dice)
+        expected_count = posterior_prob.reshape(2,1) * experiment_data[i].reshape(1,-1)
+        expected_counts += expected_count
     return expected_counts
 
 
@@ -135,9 +138,10 @@ def m_step(expected_counts_by_die: NDArray[np.float_]):
     updated_type_2_frequency = np.sum(expected_counts_by_die[1])
 
     # REPLACE EACH NONE BELOW WITH YOUR CODE. 
-    updated_priors = None
-    updated_type_1_face_probs = None
-    updated_type_2_face_probs = None
+    denom = updated_type_1_frequency + updated_type_2_frequency
+    updated_priors = [updated_type_1_frequency / denom, updated_type_2_frequency / denom]
+    updated_type_1_face_probs = expected_counts_by_die[0] / updated_type_1_frequency
+    updated_type_2_face_probs = expected_counts_by_die[1] / updated_type_2_frequency
     
     updated_bag_of_dice = BagOfDice(updated_priors,
                                     [Die(updated_type_1_face_probs),
@@ -182,3 +186,34 @@ def generate_sample(die_type_counts: Tuple[int],
     # array of num_draws arrays each containing rolls_per_draw rolls.
 
     return list(map(roll, die_types_drawn))
+
+def dice_posterior(sample_draw: List[int], 
+                   die_type_counts: Tuple[int],
+                   dice) -> float:
+    """Calculates the posterior probability of a type 1 vs a type 2 die,
+    based on the number of times each face appears in the draw, and the
+    relative numbers of type 1 and type 2 dice in the bag, as well as the
+    face probabilities for type 1 and type 2 dice. The single number returned
+    is the posterior probability of the Type 1 die. Note: we expect a BagOfDice
+    object with only two dice.
+
+    """
+    # Requiring only two dice with the same number of faces simplifies the
+    # problem a bit.
+ 
+    # YOUR CODE HERE. You may want to use your safe_exponeniate.
+
+    #get the prior distribution p(theta)
+    dice_prior = np.array(die_type_counts) / sum(die_type_counts)
+
+    #calculate the likelihood given the dice type p(x|theta)
+    likelihood_function = [np.prod([safe_exponentiate(x,y) for x, y in zip(dice.dice[i].face_probs,sample_draw)]) for i in range(len(dice.dice))]
+
+    #calculate the posterior
+    dice_posterior = likelihood_function * dice_prior 
+    
+    #normalize the posterior
+    normalized_posterior = dice_posterior/ sum(dice_posterior)
+
+    #return the posterior of the dice type 1
+    return normalized_posterior
