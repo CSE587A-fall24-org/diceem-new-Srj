@@ -109,7 +109,8 @@ def e_step(experiment_data: List[NDArray[np.int_]],
 
     # PUT YOUR CODE HERE, FOLLOWING THE DIRECTIONS ABOVE
     for i in range(len(experiment_data)):
-        posterior_prob = dice_posterior(experiment_data[i],(1,1), bag_of_dice)
+        posterior_prob = dice_posterior(experiment_data[i], bag_of_dice)
+        posterior_prob = np.array([posterior_prob, 1- posterior_prob])
         expected_count = posterior_prob.reshape(2,1) * experiment_data[i].reshape(1,-1)
         expected_counts += expected_count
     return expected_counts
@@ -186,34 +187,3 @@ def generate_sample(die_type_counts: Tuple[int],
     # array of num_draws arrays each containing rolls_per_draw rolls.
 
     return list(map(roll, die_types_drawn))
-
-def dice_posterior(sample_draw: List[int], 
-                   die_type_counts: Tuple[int],
-                   dice) -> float:
-    """Calculates the posterior probability of a type 1 vs a type 2 die,
-    based on the number of times each face appears in the draw, and the
-    relative numbers of type 1 and type 2 dice in the bag, as well as the
-    face probabilities for type 1 and type 2 dice. The single number returned
-    is the posterior probability of the Type 1 die. Note: we expect a BagOfDice
-    object with only two dice.
-
-    """
-    # Requiring only two dice with the same number of faces simplifies the
-    # problem a bit.
- 
-    # YOUR CODE HERE. You may want to use your safe_exponeniate.
-
-    #get the prior distribution p(theta)
-    dice_prior = np.array(die_type_counts) / sum(die_type_counts)
-
-    #calculate the likelihood given the dice type p(x|theta)
-    likelihood_function = [np.prod([safe_exponentiate(x,y) for x, y in zip(dice.dice[i].face_probs,sample_draw)]) for i in range(len(dice.dice))]
-
-    #calculate the posterior
-    dice_posterior = likelihood_function * dice_prior 
-    
-    #normalize the posterior
-    normalized_posterior = dice_posterior/ sum(dice_posterior)
-
-    #return the posterior of the dice type 1
-    return normalized_posterior
